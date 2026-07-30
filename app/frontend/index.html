@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PulseOps Portal</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 2rem; max-width: 900px; background: #f8fafc; color: #0f172a; }
+        h1 { border-bottom: 2px solid #e2e8f0; padding-bottom: 0.5rem; }
+        .card { background: white; padding: 1.5rem; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); margin-bottom: 1.5rem; }
+        .form-group { display: flex; gap: 0.5rem; }
+        input[type="text"] { flex: 1; padding: 0.75rem; border: 1px solid #cbd5e1; border-radius: 4px; font-size: 1rem; }
+        button { background: #2563eb; color: white; border: none; padding: 0.75rem 1.5rem; border-radius: 4px; font-size: 1rem; cursor: pointer; }
+        button:hover { background: #1d4ed8; }
+        .job-card { border: 1px solid #e2e8f0; padding: 1rem; border-radius: 6px; margin-bottom: 0.75rem; background: #fff; display: flex; justify-content: space-between; align-items: center; }
+        .badge { padding: 0.25rem 0.5rem; border-radius: 4px; font-weight: bold; font-size: 0.85rem; }
+        .badge-QUEUED { background: #fef3c7; color: #92400e; }
+        .badge-PROCESSING { background: #dbeafe; color: #1e40af; }
+        .badge-COMPLETED { background: #dcfce7; color: #166534; }
+        .badge-FAILED { background: #fee2e2; color: #991b1b; }
+    </style>
+</head>
+<body>
+    <h1>PulseOps Processing Portal</h1>
+    
+    <div class="card">
+        <h3>Submit Asynchronous Processing Job</h3>
+        <div class="form-group">
+            <input type="text" id="jobInput" placeholder="Enter string payload (e.g., hello platform)" />
+            <button onclick="submitJob()">Submit Job</button>
+        </div>
+    </div>
+
+    <div class="card">
+        <h3>Recent Jobs</h3>
+        <div id="jobList">Loading jobs...</div>
+    </div>
+
+    <script>
+        const API_URL = '/api';
+
+        async function submitJob() {
+            const input = document.getElementById('jobInput').value;
+            if (!input.trim()) return;
+            
+            try {
+                const res = await fetch(`${API_URL}/jobs`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ input_data: input })
+                });
+                if (res.ok) {
+                    document.getElementById('jobInput').value = '';
+                    fetchJobs();
+                } else {
+                    alert('Job submission failed');
+                }
+            } catch (err) {
+                console.error(err);
+                alert('API unreachable');
+            }
+        }
+
+        async function fetchJobs() {
+            try {
+                const res = await fetch(`${API_URL}/jobs`);
+                const jobs = await res.json();
+                const container = document.getElementById('jobList');
+                if (jobs.length === 0) {
+                    container.innerHTML = '<p>No jobs submitted yet.</p>';
+                    return;
+                }
+                container.innerHTML = jobs.map(j => `
+                    <div class="job-card">
+                        <div>
+                            <div><strong>ID:</strong> ${j.job_id}</div>
+                            <div><strong>Input:</strong> ${j.input_data} &rarr; <strong>Result:</strong> ${j.result || 'Pending...'}</div>
+                        </div>
+                        <span class="badge badge-${j.status}">${j.status}</span>
+                    </div>
+                `).join('');
+            } catch (err) {
+                document.getElementById('jobList').innerHTML = '<p style="color:red">Error fetching jobs from API</p>';
+            }
+        }
+
+        setInterval(fetchJobs, 2000);
+        fetchJobs();
+    </script>
+</body>
+</html>

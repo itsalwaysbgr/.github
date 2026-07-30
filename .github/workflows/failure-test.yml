@@ -1,0 +1,14 @@
+name: Controlled Failure & Rollback Test
+
+on:
+  workflow_dispatch:
+
+jobs:
+  simulate-failure:
+    name: Run Failure Scenario
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Execute Controlled Failure Script
+        run: bash scripts/failure_injection.sh
